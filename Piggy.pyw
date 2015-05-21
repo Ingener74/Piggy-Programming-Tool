@@ -92,7 +92,10 @@ def processQrcFile():
     pyFileName, _ = QFileDialog.getSaveFileName(caption=u'Сохрани py файл, незабудь "resources.qrc" -> "resources_rc.qrc"', filter='*.py', dir=LastDirectory.get())
     LastDirectory.set(pyFileName)
     
-    subprocess.Popen([getTool('pyside_rcc', u'он где то тут: Python27/Lib/site-packages/PySide/pyside-rcc.exe'), qrcFileName, '-o', pyFileName])
+    startinfo = subprocess.STARTUPINFO()
+    startinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    subprocess.call([getTool('pyside_rcc', u'он где то тут: Python27/Lib/site-packages/PySide/pyside-rcc.exe'), qrcFileName, '-o', pyFileName], startupinfo=startinfo)
 
 def processUiFile():
     qrcFileName, _ = QFileDialog.getOpenFileName(caption=u'Выбери UI файл', filter='*.ui', dir=LastDirectory.get())
@@ -101,13 +104,16 @@ def processUiFile():
     pyFileName, _ = QFileDialog.getSaveFileName(caption=u'Сохрани py файл', filter='*.py', dir=LastDirectory.get())
     LastDirectory.set(pyFileName)
     
-    subprocess.Popen([getTool('pyside_uic', u'он где то тут: Python27/Scripts/pyside-uic.exe'), qrcFileName, '-o', pyFileName])
+    startinfo = subprocess.STARTUPINFO()
+    startinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    subprocess.Popen([getTool('pyside_uic', u'он где то тут: Python27/Scripts/pyside-uic.exe'), qrcFileName, '-o', pyFileName], startupinfo=startinfo)
 
 
 def main():
     global app
     app = QApplication(sys.argv)
-
+    
     tray_menu = QMenu()
 
     tray_menu.addAction(QIcon(QPixmap('data/file.png')), u'Получить пути файлов', getFileNew)
