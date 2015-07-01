@@ -3,47 +3,33 @@
 
 import os
 import sys
-import json
 import subprocess
-
 from string import maketrans
 
-from PySide.QtGui import QApplication, QFileDialog, QSystemTrayIcon, QMenu, QIcon, QPixmap
+from PySide.QtCore import (QSettings)
+from PySide.QtGui import (QApplication, QFileDialog, QSystemTrayIcon, QMenu, QIcon, QPixmap)
 
 
+COMPANY = 'Shnaider Pavel'
+APPNAME = 'Piggy'
+
+
+# noinspection PyPep8Naming
 class LastDirectory(object):
     LAST_DIRECTORY = 'last_directory'
-    CONFIG_FILE    = 'config.json'
-    
+
     @staticmethod
     def get():
-        json_ = json.load(open(LastDirectory.CONFIG_FILE, mode='r+'))
-    
-        lastDir = json_[LastDirectory.LAST_DIRECTORY] if os.path.isdir(json_[LastDirectory.LAST_DIRECTORY]) else os.path.dirname(os.path.realpath(sys.argv[0]))
-    
-        if len(lastDir) == 0:
-            raise SystemExit
-    
-        json_[LastDirectory.LAST_DIRECTORY] = lastDir
-        with open(LastDirectory.CONFIG_FILE, 'w') as json_file:
-            json.dump(json_, json_file, sort_keys=True, indent=4, separators=(',', ':'))
-        
-        return lastDir
-    
+        settings = QSettings(QSettings.IniFormat, QSettings.UserScope, COMPANY, APPNAME)
+        return settings.value(LastDirectory.LAST_DIRECTORY, os.path.dirname(os.path.realpath(sys.argv[0])))
+
     @staticmethod
     def set(file):
-        json_ = json.load(open(LastDirectory.CONFIG_FILE, mode='r+'))
-    
-        lastDir = os.path.dirname(os.path.realpath(file))
-    
-        if len(lastDir) == 0:
-            raise SystemExit
-    
-        json_[LastDirectory.LAST_DIRECTORY] = lastDir
-        with open(LastDirectory.CONFIG_FILE, 'w') as json_file:
-            json.dump(json_, json_file, sort_keys=True, indent=4, separators=(',', ':'))
+        settings = QSettings(QSettings.IniFormat, QSettings.UserScope, COMPANY, APPNAME)
+        settings.setValue(LastDirectory.LAST_DIRECTORY, file)
 
 
+# noinspection PyPep8Naming
 def getFileNew():
     fileNames, fileFilters = QFileDialog.getOpenFileNames(dir=LastDirectory.get())
     if len(fileNames) != 0:
@@ -58,6 +44,7 @@ def getFileNew():
     clipboard.setText(str(full_).translate(maketrans('\\', '/')))
 
 
+# noinspection PyPep8Naming
 def getDirectoryNew():
     directory_ = QFileDialog.getExistingDirectory()
     global app
@@ -65,55 +52,61 @@ def getDirectoryNew():
     clipboard.setText(str(directory_).translate(maketrans('\\', '/')))
 
 
+# noinspection PyPep8Naming
 def getToolFileName(tool, comment):
     pyside_rcc, _ = QFileDialog.getOpenFileName(caption=u"Открыть {0}.exe, {1}".format(tool, comment), filter='*.exe')
     return pyside_rcc
 
+
+# noinspection PyPep8Naming
 def getTool(tool, comment):
-    CONFIG_FILE = 'config.json'
+    settings = QSettings(QSettings.IniFormat, QSettings.UserScope, COMPANY, APPNAME)
+    tool_file_name = settings.value(tool, getToolFileName(tool, comment))
+    settings.setValue(tool, tool_file_name)
+    return tool_file_name
 
-    json_ = json.load(open(CONFIG_FILE, mode='r+'))
 
-    toolFileName = json_[tool] if os.path.exists(json_[tool]) else getToolFileName(tool, comment)
-
-    if len(toolFileName) == 0:
-        raise SystemExit
-
-    json_[tool] = toolFileName
-    with open(CONFIG_FILE, 'w') as json_file:
-        json.dump(json_, json_file, sort_keys=True, indent=4, separators=(',', ':'))
-    
-    return toolFileName
-
+# noinspection PyPep8Naming
 def processQrcFile():
     qrcFileName, _ = QFileDialog.getOpenFileName(caption=u'Выбери qrc файл', filter='*.qrc', dir=LastDirectory.get())
     LastDirectory.set(qrcFileName)
-    
-    pyFileName, _ = QFileDialog.getSaveFileName(caption=u'Сохрани py файл, незабудь "resources.qrc" -> "resources_rc.qrc"', filter='*.py', dir=LastDirectory.get())
+
+    pyFileName, _ = QFileDialog.getSaveFileName(
+        caption=u'Сохрани py файл, незабудь "resources.qrc" -> "resources_rc.qrc"', filter='*.py',
+        dir=LastDirectory.get())
     LastDirectory.set(pyFileName)
-    
+
     startinfo = subprocess.STARTUPINFO()
     startinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-    subprocess.call([getTool('pyside_rcc', u'он где то тут: Python27/Lib/site-packages/PySide/pyside-rcc.exe'), qrcFileName, '-o', pyFileName], startupinfo=startinfo)
+    subprocess.call(
+        [getTool('pyside_rcc', u'он где то тут: Python27/Lib/site-packages/PySide/pyside-rcc.exe'), qrcFileName, '-o',
+         pyFileName], startupinfo=startinfo)
 
+
+# noinspection PyPep8Naming
 def processUiFile():
     qrcFileName, _ = QFileDialog.getOpenFileName(caption=u'Выбери UI файл', filter='*.ui', dir=LastDirectory.get())
     LastDirectory.set(qrcFileName)
-    
+
     pyFileName, _ = QFileDialog.getSaveFileName(caption=u'Сохрани py файл', filter='*.py', dir=LastDirectory.get())
     LastDirectory.set(pyFileName)
-    
+
     startinfo = subprocess.STARTUPINFO()
     startinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-    subprocess.Popen([getTool('pyside_uic', u'он где то тут: Python27/Scripts/pyside-uic.exe'), qrcFileName, '-o', pyFileName], startupinfo=startinfo)
+    subprocess.Popen(
+        [getTool('pyside_uic', u'он где то тут: Python27/Scripts/pyside-uic.exe'), qrcFileName, '-o', pyFileName],
+        startupinfo=startinfo)
 
 
 def main():
     global app
     app = QApplication(sys.argv)
-    
+
+    settings = QSettings(QSettings.IniFormat, QSettings.UserScope, COMPANY, APPNAME)
+    print settings.fileName()
+
     tray_menu = QMenu()
 
     tray_menu.addAction(QIcon(QPixmap('data/file.png')), u'Получить пути файлов', getFileNew)
@@ -134,4 +127,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
