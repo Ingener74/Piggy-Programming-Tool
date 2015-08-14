@@ -61,7 +61,9 @@ def getToolFileName(tool, comment):
 # noinspection PyPep8Naming
 def getTool(tool, comment):
     settings = QSettings(QSettings.IniFormat, QSettings.UserScope, COMPANY, APPNAME)
-    tool_file_name = settings.value(tool, getToolFileName(tool, comment))
+    tool_file_name = settings.value(tool, None) # , getToolFileName(tool, comment)
+    if tool_file_name is None:
+        tool_file_name = getToolFileName(tool, comment)
     settings.setValue(tool, tool_file_name)
     return tool_file_name
 
